@@ -1,4 +1,13 @@
+[build]
+  publish = "dist" # Adjust to your build output directory
+  command = "npm run build" # Adjust to your build command
+
 [[headers]]
   for = "*.js"
   [headers.values]
     Content-Type = "text/javascript"
+
+[[redirects]]
+  from = "/favicon.ico"
+  to = "/favicon.ico" # Adjust to your favicon path
+  status = 200
