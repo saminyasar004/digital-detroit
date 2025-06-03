@@ -125,6 +125,7 @@ const UserChatPage = () => {
 			);
 
 			const uploadedFileId = uploadResponse.data.data.id;
+			console.log("UploadedFileId", uploadedFileId);
 
 			// Step 2: Create conversion job
 			const jobResponse = await axiosInstance.post(
@@ -155,6 +156,8 @@ const UserChatPage = () => {
 				}
 			);
 
+			console.log("Job Response ", jobResponse);
+
 			return jobResponse.data.data.id;
 		} catch (err) {
 			throw new Error("Failed to start conversion: " + err.message);
@@ -175,6 +178,9 @@ const UserChatPage = () => {
 				);
 
 				const job = statusResponse.data.data;
+
+				console.log("Job Status ", job);
+
 				if (job.status === "finished") {
 					const exportTask = job.tasks.find(
 						(task) => task.operation === "export/url"
