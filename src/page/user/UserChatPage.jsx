@@ -15,6 +15,7 @@ const UserChatPage = () => {
 	const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 	const [isBotTyping, setIsBotTyping] = useState(false);
 	const [saving, setSaving] = useState(false);
+	const [downloading, setDownloading] = useState(false);
 	const [converting, setConverting] = useState(false);
 	const [error, setError] = useState(null);
 	const [docxUrl, setDocxUrl] = useState(null);
@@ -48,7 +49,7 @@ const UserChatPage = () => {
 
 		const opt = {
 			margin: 0,
-			filename: "download.pdf",
+			filename: JSON.parse(data?.content)?.title || "download.pdf",
 			image: { type: "jpeg", quality: 0.98 },
 			html2canvas: {
 				scale: 2,
@@ -65,43 +66,37 @@ const UserChatPage = () => {
 	};
 
 	// Handle PDF download
-	const handleCreatePDF = () => {
-		const element = templateRef.current;
-		if (!element) {
-			setError("No template content to download.");
-			return;
+	const handleCreatePDF = async () => {
+		setError(null);
+		try {
+			setDownloading(true);
+			const blob = await generatePdf();
+			const url = URL.createObjectURL(blob);
+			const link = document.createElement("a");
+			link.href = url;
+			link.download = JSON.parse(data?.content)?.title || "download.pdf";
+			link.click();
+			setMessages((prevMessages) => [
+				...prevMessages,
+				{
+					sender: "bot",
+					text: "PDF generated successfully!",
+					timestamp: new Date().toLocaleString("en-US", {
+						day: "2-digit",
+						month: "2-digit",
+						year: "2-digit",
+						hour: "2-digit",
+						minute: "2-digit",
+					}),
+				},
+			]);
+		} catch (err) {
+			setDownloading(false);
+			console.log("Error on creating pdf: ", err);
+			setError(err.message);
+		} finally {
+			setDownloading(false);
 		}
-
-		const opt = {
-			margin: 0,
-			filename: "download.pdf",
-			image: { type: "jpeg", quality: 0.98 },
-			html2canvas: {
-				scale: 2,
-				useCORS: true,
-			},
-			jsPDF: {
-				unit: "mm",
-				format: "a4",
-				orientation: "portrait",
-			},
-		};
-
-		html2pdf().set(opt).from(element).save();
-		setMessages((prevMessages) => [
-			...prevMessages,
-			{
-				sender: "bot",
-				text: "PDF generated successfully!",
-				timestamp: new Date().toLocaleString("en-US", {
-					day: "2-digit",
-					month: "2-digit",
-					year: "2-digit",
-					hour: "2-digit",
-					minute: "2-digit",
-				}),
-			},
-		]);
 	};
 
 	// Start CloudConvert job for PDF-to-DOCX conversion
@@ -392,21 +387,21 @@ const UserChatPage = () => {
 	return (
 		<div className="min-h-screen flex flex-col">
 			<Navbar />
-			<div className="flex flex-1 mt-[75px]">
-				<UserSidebar
+			<div className="container flex flex-1 mt-[75px]">
+				{/* <UserSidebar
 					isOpen={isSidebarOpen}
 					toggleSidebar={toggleSidebar}
 					refreshKey={refreshKey}
 					setData={setData}
-				/>
+				/> */}
 				<div
 					className={`${
 						isSidebarOpen ? "md:w-[86%]" : "w-full"
-					} flex md:ml-auto`}
+					} md:ml-auto flex gap-3`}
 				>
-					<div className="md:w-1/2 border-r border-gray-200 md:block hidden">
+					<div className="w-[1200px] border-r border-gray-200 md:block overflow-x-hidden">
 						<div className="flex justify-end relative items-center mb-4 bg-[#DBF1FB] py-3 px-2 shadow-lg">
-							<button
+							{/* <button
 								onClick={toggleSidebar}
 								className="p-2 bg-gray-200 absolute left-2 z-50 rounded-lg hover:bg-gray-300 flex items-center gap-2"
 							>
@@ -415,7 +410,7 @@ const UserChatPage = () => {
 									alt="Sidebar"
 									className="w-7"
 								/>
-							</button>
+							</button> */}
 							<div className="flex space-x-2">
 								<button
 									onClick={handleSaveTemplate}
@@ -431,15 +426,17 @@ const UserChatPage = () => {
 								</button>
 								<button
 									onClick={handleCreatePDF}
-									disabled={converting}
+									disabled={downloading}
 									className={`p-2 rounded-lg flex items-center gap-2 ${
-										converting
+										downloading
 											? "bg-gray-300 cursor-not-allowed"
 											: "bg-gray-200 hover:bg-gray-300"
 									}`}
 								>
 									<FiDownload />
-									Download PDF
+									{downloading
+										? "Downloading..."
+										: "Download PDF"}
 								</button>
 								<button
 									onClick={handleCreateDocx}
@@ -477,7 +474,8 @@ const UserChatPage = () => {
 							/>
 						</div>
 					</div>
-					<div className="md:w-1/2 flex flex-col w-full">
+
+					<div className="flex flex-col w-full">
 						<div className="bg-[#DBF1FB] py-1 px-2 mb-3 shadow-lg flex items-center gap-2">
 							<img src={Text} alt="Smart PDF Generator" />
 							<span className="text-sm text-[#012939]">
